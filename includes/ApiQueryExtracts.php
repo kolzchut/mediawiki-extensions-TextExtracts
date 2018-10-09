@@ -33,6 +33,8 @@ use UsageException;
 use User;
 use WikiPage;
 
+require_once __DIR__ . '/textExtractOverride.php';
+
 class ApiQueryExtracts extends ApiQueryBase {
 	/**
 	 * @var ParserOptions
@@ -136,13 +138,16 @@ class ApiQueryExtracts extends ApiQueryBase {
 			$text = $this->getFromCache( $page, false );
 			if ( $text !== false ) {
 				$text = $this->getFirstSection( $text, $this->params['plaintext'] );
+				$text = function_exists('TextExtractOverrideParseByTitle') ? TextExtractOverrideParseByTitle($title, $text) : $text;
 			}
 		}
 		if ( $text === false ) {
 			$text = $this->parse( $page );
 			$text = $this->convertText( $text );
+			$text = function_exists('TextExtractOverrideParseByTitle') ? TextExtractOverrideParseByTitle($title, $text) : $text;
 			$this->setCache( $page, $text );
 		}
+		$text = function_exists('TextExtractOverrideParseByTitle') ? TextExtractOverrideParseByTitle($title, $text) : $text;
 		return $text;
 	}
 
@@ -154,6 +159,7 @@ class ApiQueryExtracts extends ApiQueryBase {
 	}
 
 	private function getFromCache( WikiPage $page, $introOnly ) {
+		return null;
 		global $wgMemc;
 
 		$key = $this->cacheKey( $page, $introOnly );
@@ -179,6 +185,7 @@ class ApiQueryExtracts extends ApiQueryBase {
 		return $text;
 	}
 
+	
 	/**
 	 * Returns page HTML
 	 * @param WikiPage $page
