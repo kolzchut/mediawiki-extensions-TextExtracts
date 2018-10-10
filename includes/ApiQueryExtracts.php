@@ -159,7 +159,9 @@ class ApiQueryExtracts extends ApiQueryBase {
 	}
 
 	private function getFromCache( WikiPage $page, $introOnly ) {
-		return null;
+		if('kolzchut.openfox.co.il' == $_SERVER['HTTP_HOST']){
+			return null;
+		}
 		global $wgMemc;
 
 		$key = $this->cacheKey( $page, $introOnly );

@@ -30,7 +30,7 @@ function TextExtractOverrideGetDescriptionFromCargo( $title ) {
 				
 			}
 			//die(print_r($formattedData));
-			$text_to_return = $formattedData ? html_entity_decode($formattedData->mText) : '';
+			$text_to_return = $formattedData ? html_entity_decode($formattedData->getText()) : '';
 			return strip_tags($text_to_return);
 		}
 	}
