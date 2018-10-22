@@ -13,29 +13,27 @@ function TextExtractOverrideParseByTitle( $title, $alterntiveText ) {
 	return $text ? $text : ($alterntiveText && !$isAlternativeTextDefault ? $alterntiveText : wfMessage( 'text-extracts-default-description')->text());
 }	
 
+function TextExtractOverrideGetDataFromCargo( $name, $title ) {
+	$sqlQuery = \CargoSQLQuery::newFromValues( 'meta_data', 'excerpt', "meta_data._pageName='{$title->mTextform}'",'','','','','');
+	try {
+		$queryResults = $sqlQuery->run();
+
+	} catch ( Exception $e ) {
+		$queryResults = [];
+	}
+	return $queryResults;
+}
 function TextExtractOverrideGetDescriptionFromCargo( $title ) {
 		//die(print_r($title));
 		if(class_exists('CargoSQLQuery')){
-			$sqlQuery = \CargoSQLQuery::newFromValues( 'meta_data', 'excerpt', "meta_data._pageName='{$title->mTextform}'",'','','','','');
-			try {
-				$queryResults = $sqlQuery->run();
+			$queryResults = TextExtractOverrideGetDataFromCargo('excerpt');
 
-			} catch ( Exception $e ) {
-				$queryResults = [];
+			if(!count($queryResults)){
+				$queryResults = TextExtractOverrideGetDataFromCargo('excerpt-text');
 			}
-
-			// Format data as the API requires it.
-			//$formattedData = array();
 			$formattedData = null;
 			foreach ( $queryResults as $row ) {
 				if($row){
-					/*
-					$myParse = new \Parser();
-					$myParse->mStripState = new StripState;
-					$myParse->parse($row['excerpt'], $title, new \ParserOptions());
-					$formattedData = html_entity_decode($formattedData);
-					$formattedData = $myParse->killMarkers($formattedData);
-					*/
 
 					$myParse = new \Parser();
 					$formattedData = $myParse->parse($row['excerpt'], $title, new \ParserOptions());
