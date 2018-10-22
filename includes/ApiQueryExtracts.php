@@ -159,7 +159,8 @@ class ApiQueryExtracts extends ApiQueryBase {
 	}
 
 	private function getFromCache( WikiPage $page, $introOnly ) {
-		if('kolzchut.openfox.co.il' == $_SERVER['HTTP_HOST']){
+		global $wgCachePages;
+		if(!$wgCachePages){
 			return null;
 		}
 		global $wgMemc;

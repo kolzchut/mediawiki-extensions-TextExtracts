@@ -14,7 +14,7 @@ function TextExtractOverrideParseByTitle( $title, $alterntiveText ) {
 }	
 
 function TextExtractOverrideGetDataFromCargo( $name, $title ) {
-	$sqlQuery = \CargoSQLQuery::newFromValues( 'meta_data', 'excerpt', "meta_data._pageName='{$title->mTextform}'",'','','','','');
+	$sqlQuery = \CargoSQLQuery::newFromValues( 'meta_data', $name, "meta_data._pageName='{$title->mTextform}'",'','','','','');
 	try {
 		$queryResults = $sqlQuery->run();
 
@@ -26,17 +26,18 @@ function TextExtractOverrideGetDataFromCargo( $name, $title ) {
 function TextExtractOverrideGetDescriptionFromCargo( $title ) {
 		//die(print_r($title));
 		if(class_exists('CargoSQLQuery')){
-			$queryResults = TextExtractOverrideGetDataFromCargo('excerpt');
+			$queryResults = TextExtractOverrideGetDataFromCargo('excerpt', $title);
 
-			if(!count($queryResults)){
-				$queryResults = TextExtractOverrideGetDataFromCargo('excerpt-text');
+			if(!count($queryResults) || !$queryResults[0]['excerpt']){
+				$queryResults = TextExtractOverrideGetDataFromCargo('excerpt-text', $title);
 			}
+			//die(print_r(['mmm',$queryResults[0]]));
 			$formattedData = null;
 			foreach ( $queryResults as $row ) {
 				if($row){
-
+					$textFromRow = isset($row['excerpt']) ? $row['excerpt'] : $row['excerpt-text'];
 					$myParse = new \Parser();
-					$formattedData = $myParse->parse($row['excerpt'], $title, new \ParserOptions());
+					$formattedData = $myParse->parse($textFromRow, $title, new \ParserOptions());
 					$text = html_entity_decode($formattedData->getText());
 					$stripper = new StripStateOverride;
 					$regex = $stripper->getRegex();
@@ -49,7 +50,7 @@ function TextExtractOverrideGetDescriptionFromCargo( $title ) {
 				
 			}
 			//die(print_r($formattedData));
-			$text_to_return = $formattedData ? ($formattedData) : '';
+			$text_to_return = $formattedData ? $formattedData . '...' : '';
 
 			return strip_tags($text_to_return);
 		}
