@@ -60,7 +60,7 @@ class ApiQueryExtracts extends ApiQueryBase {
 	/**
 	 * Evaluates the parameters, performs the requested extraction of text,
 	 * and sets up the result
-	 * @return null
+	 * @return void
 	 */
 	public function execute() {
 		$titles = $this->getPageSet()->getGoodTitles();
@@ -151,7 +151,16 @@ class ApiQueryExtracts extends ApiQueryBase {
 		$page = WikiPage::factory( $title );
 
 		$introOnly = $this->params['intro'];
-		$text = $this->getFromCache( $page, $introOnly );
+
+		// WikiRights override: try to get the cargo synopsis first, and only if that's empty,
+		// then get the intro
+		if ( $introOnly ) {
+			// @todo this should be cached as well
+			$text = self::TextExtractOverrideGetDescriptionFromCargo( $title );
+		} else {
+			$text = $this->getFromCache( $page, $introOnly );
+		}
+
 		// if we need just first section, try retrieving full page and getting first section out of it
 		if ( $text === false && $introOnly ) {
 			$text = $this->getFromCache( $page, false );
@@ -397,4 +406,52 @@ class ApiQueryExtracts extends ApiQueryBase {
 	public function getHelpUrls() {
 		return 'https://www.mediawiki.org/wiki/Special:MyLanguage/Extension:TextExtracts#API';
 	}
+
+	/**
+	 * @param $title
+	 *
+	 * @return string|null
+	 */
+	private static function TextExtractOverrideGetDescriptionFromCargo( $title ) {
+		if ( class_exists( 'CargoSQLQuery' ) ){
+			$queryResults = self::TextExtractOverrideGetDataFromCargo( 'excerpt', $title );
+
+			$formattedData = null;
+			foreach ( $queryResults as $row ) {
+				if ( $row ){
+					$textFromRow = $row['excerpt'];
+					$myParse = new \Parser();
+					$formattedData = $myParse->parse( $textFromRow, $title, new \ParserOptions() );
+					$text = html_entity_decode( $formattedData->getText() );
+					$stripper = new StripStateOverride;
+					$regex = $stripper->getRegex();
+					$regex = preg_replace( '/\x7f/', '\?', $regex );
+					$formattedData = preg_replace( $regex, '', $text );
+					break;
+				}
+			}
+			$text_to_return = $formattedData ? $formattedData . '...' : '';
+
+			return strip_tags( $text_to_return );
+		}
+
+		return null;
+	}
+
+	private static function TextExtractOverrideGetDataFromCargo( $name, $title ) {
+		$sqlQuery = \CargoSQLQuery::newFromValues(
+			'page_synopsis',
+			$name,
+			"page_synopsis._pageName='{$title->mTextform}'",
+			'', '', '', '', '', ''
+		);
+		try {
+			$queryResults = $sqlQuery->run();
+
+		} catch ( \Exception $e ) {
+			$queryResults = [];
+		}
+		return $queryResults;
+	}
+
 }
