@@ -156,7 +156,7 @@ class ApiQueryExtracts extends ApiQueryBase {
 		// then get the intro
 		if ( $introOnly ) {
 			// @todo this should be cached as well
-			$text = self::TextExtractOverrideGetDescriptionFromCargo( $title );
+			$text = $this->TextExtractOverrideGetDescriptionFromCargo( $title );
 		} else {
 			$text = $this->getFromCache( $page, $introOnly );
 		}
@@ -412,9 +412,9 @@ class ApiQueryExtracts extends ApiQueryBase {
 	 *
 	 * @return string|null
 	 */
-	private static function TextExtractOverrideGetDescriptionFromCargo( $title ) {
+	private function TextExtractOverrideGetDescriptionFromCargo( $title ) {
 		if ( class_exists( 'CargoSQLQuery' ) ){
-			$queryResults = self::TextExtractOverrideGetDataFromCargo( 'excerpt', $title );
+			$queryResults = $this->TextExtractOverrideGetDataFromCargo( 'excerpt', $title );
 
 			$formattedData = null;
 			foreach ( $queryResults as $row ) {
@@ -438,11 +438,21 @@ class ApiQueryExtracts extends ApiQueryBase {
 		return null;
 	}
 
-	private static function TextExtractOverrideGetDataFromCargo( $name, $title ) {
+	/**
+	 * @param $name
+	 * @param Title $title
+	 *
+	 * @return array
+	 * @throws \MWException
+	 */
+	private function TextExtractOverrideGetDataFromCargo( $name, $title ) {
+		$dbr = self::getDB( DB_REPLICA );
+		$titleTextQuoted = $dbr->addQuotes( $title->getText() );
+
 		$sqlQuery = \CargoSQLQuery::newFromValues(
 			'page_synopsis',
 			$name,
-			"page_synopsis._pageName='{$title->mTextform}'",
+			"page_synopsis._pageName={$titleTextQuoted}",
 			'', '', '', '', '', ''
 		);
 		try {
